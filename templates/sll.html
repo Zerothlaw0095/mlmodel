@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{C_type}} in {{state}} upto year {{year}}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <header class="header1">
+        <div class="box1">
+            <a href="home.html"><img src="{{url_for('static', filename='images/logo_trial.png')}}" height="115vh" width="90%" alt="Logo"/></a>
+        </div>
+        <div class="box2">
+            <h1>Indian <span class="highlight">Crime</span> Analysis</h1>
+        </div>
+        <div class="box3">
+            <nav>
+                <ul>
+                    <li><a href="About.html">ABOUT</a></li>
+                    <li><a href="home.html">HOME</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="content-wrapper">
+        <div id="status-message">
+            {% if msg %}
+            <div class="alert {% if 'Error' in msg %}alert-danger{% else %}alert-info{% endif %} text-center">
+                {{msg}}
+            </div>
+            {% endif %}
+        </div>
+
+        {% if C_type and state and year %}
+        <div class="prediction-header text-center">
+            <h3 class="mt-4 mb-4">"{{C_type}}" SLL Cases in {{state}} up to Year {{year}}</h3>
+        </div>
+
+        <div class="container">
+            <div id="chartError" class="alert alert-danger" style="display:none;">
+                Error loading chart data
+            </div>
+            <canvas id="myChart"></canvas>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            // Safely get data with fallbacks
+            const predData = {{ pred_data|tojson|safe }} || [];
+            const yearsData = {{ years|tojson|safe }} || [];
+            const crimeType = "{{C_type|safe}}" || "";
+
+            // Debug logging
+            console.log("Chart data:", {
+                predictions: predData,
+                years: yearsData,
+                type: crimeType
+            });
+
+            // Validate data
+            if (!predData.length || !yearsData.length) {
+                throw new Error("Missing prediction data or years data");
+            }
+
+            const ctx = document.getElementById("myChart").getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: yearsData,
+                    datasets: [{
+                        type: 'bar',
+                        label: crimeType,
+                        data: predData,
+                        backgroundColor: 'rgba(128, 128, 128, 0.7)',
+                        borderColor: 'grey',
+                        borderWidth: 1
+                    }, {
+                        type: 'line',
+                        label: `${crimeType} Trend`,
+                        fill: false,
+                        borderWidth: 3,
+                        data: predData,
+                        borderColor: 'rgba(255, 0, 0, 0.8)',
+                        pointBackgroundColor: 'red',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: `SLL Crimes - ${crimeType}`,
+                        fontSize: 20,
+                        padding: 20
+                    },
+                    scales: {
+                        yAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Number of Cases',
+                                fontSize: 14
+                            },
+                            ticks: {
+                                fontColor: "red",
+                                beginAtZero: true
+                            }
+                        }],
+                        xAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Years',
+                                fontSize: 14
+                            },
+                            ticks: {
+                                fontColor: "red",
+                                autoSkip: false,
+                                maxRotation: 45
+                            }
+                        }]
+                    },
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            fontColor: 'black',
+                            padding: 20
+                        }
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(tooltipItem, data) {
+                                return `${data.datasets[tooltipItem.datasetIndex].label}: ${tooltipItem.yLabel} cases`;
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error("Chart initialization error:", error);
+            const chartError = document.getElementById('chartError');
+            chartError.style.display = 'block';
+            chartError.textContent = `Error: ${error.message}`;
+        }
+    });
+    </script>
+
+    <footer>
+        <p>Indian Crime Analysis, Copyright &copy; 2025</p>
+        <img src="{{url_for('static', filename='images/indiagov.png')}}" id="IG" alt="Government Logo">
+    </footer>
+
+</body>
+</html>
